@@ -1,97 +1,203 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { db, generateId } from "@/mockData";
+import { getSupabase } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/format";
+import { AREAS } from "@/lib/config";
+import type { Role } from "@/lib/types";
+import { AuthShell } from "@/components/AuthShell";
+import { ErrorBox, NoticeBox, inputClass, primaryButton } from "@/components/ui";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNextPath(searchParams.get("next"));
+
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ role: "customer", name: "", email: "", password: "" });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [checkEmail, setCheckEmail] = useState(false);
+  const [form, setForm] = useState({
+    role: "buyer" as Role,
+    name: "",
+    email: "",
+    password: "",
+    shopName: "",
+    location: "Kikuubo",
+    phone: "",
+  });
 
-  const handleSignup = (e: React.FormEvent) => {
+  const update = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const isSeller = form.role === "seller";
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg("");
+
+    if (form.password.length < 8) {
+      setErrorMsg("Your password must be at least 8 characters.");
+      return;
+    }
+    if (isSeller && !/^\+?[0-9\s-]{9,15}$/.test(form.phone.trim())) {
+      setErrorMsg("Enter a valid phone number, for example 0772 123 456.");
+      return;
+    }
+
     setLoading(true);
-    
-    setTimeout(() => {
-      const newUser = {
-        id: generateId(), // <-- Give them a unique ID
-        name: form.name,
-        email: form.email,
-        role: form.role,
-        verified: false,
-        feePaid: false
-      };
 
-      db.loginUser(newUser);
-      
-      if (form.role === "seller") {
-        db.registerSeller(newUser);
-      }
+    const { data, error } = await getSupabase().auth.signUp({
+      email: form.email.trim(),
+      password: form.password,
+      options: {
+        // The database trigger turns this into the user's profile.
+        data: {
+          role: form.role,
+          full_name: form.name.trim(),
+          shop_name: isSeller ? form.shopName.trim() : null,
+          location: isSeller ? form.location : null,
+          phone: isSeller ? form.phone.trim() : null,
+        },
+      },
+    });
 
-      router.push("/dashboard");
-    }, 1000);
+    if (error) {
+      setErrorMsg(
+        error.message.toLowerCase().includes("already registered")
+          ? "That email already has an account. Try logging in."
+          : error.message
+      );
+      setLoading(false);
+      return;
+    }
+
+    // With email confirmation switched off, we are signed in straight away.
+    if (data.session) {
+      router.push(next);
+      router.refresh();
+      return;
+    }
+    setCheckEmail(true);
+    setLoading(false);
   };
 
-  return (
-    <div className="flex min-h-screen bg-white">
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-zinc-900 p-12 text-white">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold">BP</div>
-          <span className="text-xl font-bold">BEYI POWA</span>
-        </Link>
-        <div>
-          <h1 className="text-4xl font-bold">The trusted marketplace for genuine phones in Kampala.</h1>
+  if (checkEmail) {
+    return (
+      <AuthShell tagline="The trusted marketplace for genuine phones in Kampala.">
+        <h2 className="text-3xl font-bold text-zinc-900">Check your email</h2>
+        <div className="mt-4">
+          <NoticeBox tone="green">
+            We sent a confirmation link to <strong>{form.email}</strong>. Open it, then come back and log in.
+          </NoticeBox>
         </div>
-        <div className="text-sm text-zinc-500">&copy; 2026 BEYI POWA.</div>
+        <Link href="/login" className={`mt-6 block text-center ${primaryButton}`}>
+          Go to log in
+        </Link>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell tagline="The trusted marketplace for genuine phones in Kampala.">
+      <h2 className="text-3xl font-bold text-zinc-900">Create an account</h2>
+      <p className="mt-2 text-sm text-zinc-500">
+        Already have an account?{" "}
+        <Link
+          href={next === "/dashboard" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+          className="font-semibold text-blue-600"
+        >
+          Log in
+        </Link>
+      </p>
+
+      <div className="mt-4">
+        <ErrorBox message={errorMsg} />
       </div>
 
-      <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-12 bg-white">
-        <div className="w-full max-w-md">
-          <h2 className="text-3xl font-bold text-zinc-900">Create an account</h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            Already have an account? <Link href="/login" className="font-semibold text-blue-600">Log in</Link>
-          </p>
+      <form onSubmit={handleSignup} className="mt-6 space-y-5">
+        <div>
+          <span className="mb-2 block text-sm font-medium text-zinc-900">Account type</span>
+          <div className="grid grid-cols-2 gap-3">
+            {(
+              [
+                { value: "buyer", title: "Buyer", hint: "I want to buy" },
+                { value: "seller", title: "Seller", hint: "I want to sell" },
+              ] as const
+            ).map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex cursor-pointer flex-col items-center rounded-xl border p-4 ${
+                  form.role === opt.value ? "border-blue-600 bg-blue-50" : "border-zinc-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={opt.value}
+                  checked={form.role === opt.value}
+                  onChange={() => update({ role: opt.value })}
+                  className="sr-only"
+                />
+                <span className="font-bold text-zinc-900">{opt.title}</span>
+                <span className="mt-1 text-xs text-zinc-500">{opt.hint}</span>
+              </label>
+            ))}
+          </div>
+        </div>
 
-          <form onSubmit={handleSignup} className="mt-6 space-y-5">
+        <div>
+          <label htmlFor="name" className="mb-1 block text-sm font-medium text-zinc-900">Full name</label>
+          <input id="name" type="text" required autoComplete="name" value={form.name} onChange={(e) => update({ name: e.target.value })} className={inputClass} placeholder="John Doe" />
+        </div>
+
+        {isSeller && (
+          <>
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-900">Account Type</label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className={`flex flex-col items-center rounded-xl border p-4 cursor-pointer ${form.role === "customer" ? "border-blue-600 bg-blue-50" : "border-zinc-200"}`}>
-                  <input type="radio" name="role" value="customer" checked={form.role === "customer"} onChange={() => setForm({...form, role: "customer"})} className="sr-only" />
-                  <span className="font-bold text-zinc-900">Buyer</span>
-                  <span className="text-xs text-zinc-500 mt-1">I want to buy</span>
-                </label>
-                <label className={`flex flex-col items-center rounded-xl border p-4 cursor-pointer ${form.role === "seller" ? "border-blue-600 bg-blue-50" : "border-zinc-200"}`}>
-                  <input type="radio" name="role" value="seller" checked={form.role === "seller"} onChange={() => setForm({...form, role: "seller"})} className="sr-only" />
-                  <span className="font-bold text-zinc-900">Seller</span>
-                  <span className="text-xs text-zinc-500 mt-1">I want to sell</span>
-                </label>
+              <label htmlFor="shop" className="mb-1 block text-sm font-medium text-zinc-900">Shop name</label>
+              <input id="shop" type="text" required value={form.shopName} onChange={(e) => update({ shopName: e.target.value })} className={inputClass} placeholder="e.g. Sharif Phones" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="area" className="mb-1 block text-sm font-medium text-zinc-900">Where is your shop?</label>
+                <select id="area" value={form.location} onChange={(e) => update({ location: e.target.value })} className={inputClass}>
+                  {AREAS.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="phone" className="mb-1 block text-sm font-medium text-zinc-900">Phone / WhatsApp</label>
+                <input id="phone" type="tel" required autoComplete="tel" value={form.phone} onChange={(e) => update({ phone: e.target.value })} className={inputClass} placeholder="0772 123 456" />
               </div>
             </div>
+            <p className="-mt-2 text-xs text-zinc-500">
+              Your phone number is private. Only you and the BEYI POWA team can see it.
+            </p>
+          </>
+        )}
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-900">Full Name</label>
-              <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full rounded-lg border border-zinc-300 bg-white text-zinc-900 p-2.5 outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-zinc-400" placeholder="John Doe" />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-900">Email</label>
-              <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full rounded-lg border border-zinc-300 bg-white text-zinc-900 p-2.5 outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-zinc-400" placeholder="you@example.com" />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-900">Password</label>
-              <input type="password" required value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} className="w-full rounded-lg border border-zinc-300 bg-white text-zinc-900 p-2.5 outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-zinc-400" placeholder="••••••••" />
-            </div>
-
-            <button type="submit" disabled={loading} className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500">
-              {loading ? "Creating account..." : "Create account"}
-            </button>
-          </form>
+        <div>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-900">Email</label>
+          <input id="email" type="email" required autoComplete="email" value={form.email} onChange={(e) => update({ email: e.target.value })} className={inputClass} placeholder="you@example.com" />
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-zinc-900">Password</label>
+          <input id="password" type="password" required minLength={8} autoComplete="new-password" value={form.password} onChange={(e) => update({ password: e.target.value })} className={inputClass} placeholder="At least 8 characters" />
+        </div>
+
+        <button type="submit" disabled={loading} className={`w-full py-3 ${primaryButton}`}>
+          {loading ? "Creating account..." : "Create account"}
+        </button>
+      </form>
+    </AuthShell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-zinc-500">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
   );
 }
