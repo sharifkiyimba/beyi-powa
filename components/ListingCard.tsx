@@ -14,11 +14,11 @@ export function ListingCard({ listing }: { listing: ListingWithRelations }) {
       href={`/listing/${listing.id}`}
       className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-md"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
         <Photo
           src={firstPhotoUrl(listing)}
           alt={listing.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-contain"
         />
       </div>
 

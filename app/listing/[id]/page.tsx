@@ -128,7 +128,7 @@ function ListingContent() {
                 <Photo
                   src={photos[activePhoto] ? mediaUrl(photos[activePhoto].path) : null}
                   alt={listing.title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               </div>
             </div>
