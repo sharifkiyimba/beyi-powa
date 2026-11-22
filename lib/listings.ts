@@ -25,7 +25,7 @@ export function firstPhotoUrl(l: ListingWithRelations): string | null {
   return first ? mediaUrl(first.path) : null;
 }
 
-export function wholesalePriceOf(l: ListingWithRelations): number | null {
+export function wholesalePriceOf(l: { wholesale: ListingWithRelations["wholesale"] }): number | null {
   const w = l.wholesale;
   if (!w) return null;
   const row = Array.isArray(w) ? w[0] : w;

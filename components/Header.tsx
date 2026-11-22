@@ -31,6 +31,9 @@ export function Header({ sticky = false }: { sticky?: boolean }) {
         <nav className="flex items-center gap-3 text-sm font-medium sm:gap-4">
           {loading ? null : user ? (
             <>
+              {profile?.role === "seller" && (
+                <Link href="/communities" className="text-zinc-600 hover:text-zinc-900">Communities</Link>
+              )}
               <Link href="/inbox" className="text-zinc-600 hover:text-zinc-900">Inbox</Link>
               <Link href="/dashboard" className="text-zinc-600 hover:text-zinc-900">Dashboard</Link>
               {profile?.is_admin && (

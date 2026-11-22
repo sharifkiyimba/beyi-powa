@@ -134,6 +134,11 @@ export default function DashboardPage() {
               <Link href="/inbox" className={`block w-full text-center ${secondaryButton}`}>
                 Open inbox
               </Link>
+              {status === "active" && (
+                <Link href="/communities" className={`block w-full text-center ${secondaryButton}`}>
+                  Seller communities
+                </Link>
+              )}
               {isSeller && (
                 <Link href={`/seller/${profile.id}`} className={`block w-full text-center ${secondaryButton}`}>
                   View my public profile

@@ -25,3 +25,7 @@ export const AREAS = [
 ] as const;
 
 export const MAX_PHOTOS = 5;
+
+/** Community videos are uploaded as they are, so keep them short and small. */
+export const MAX_VIDEO_MB = 25;
+export const MAX_VIDEO_SECONDS = 60;

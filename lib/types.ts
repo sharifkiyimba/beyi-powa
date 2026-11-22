@@ -66,6 +66,55 @@ export interface Message {
   created_at: string;
 }
 
+export interface Community {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  created_at: string;
+}
+
+export interface CommunityOverview extends Community {
+  member_count: number;
+  is_member: boolean;
+}
+
+export interface CommunityMember {
+  user_id: string;
+  joined_at: string;
+  member: Pick<Profile, "id" | "full_name" | "shop_name" | "location" | "verified" | "paid_until" | "suspended"> | null;
+}
+
+/** One photo or video in a community, optionally pointing at one of the author's phones. */
+export interface CommunityPostRow {
+  id: string;
+  community_id: string;
+  author_id: string;
+  listing_id: string | null;
+  caption: string | null;
+  media_path: string;
+  media_kind: "image" | "video";
+  created_at: string;
+  author: SellerSummary | null;
+  listing: {
+    id: string;
+    title: string;
+    retail_price: number;
+    condition: Condition;
+    status: "available" | "sold";
+    wholesale: { wholesale_price: number } | { wholesale_price: number }[] | null;
+  } | null;
+}
+
+export interface CommunityMessage {
+  id: string;
+  community_id: string;
+  sender_id: string;
+  body: string;
+  client_id: string;
+  created_at: string;
+}
+
 export interface Review {
   id: string;
   sale_id: string;

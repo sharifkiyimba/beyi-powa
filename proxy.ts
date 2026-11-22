@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * This is a convenience layer. The real security is in the database
  * (row-level security), which also protects data if someone skips this.
  */
-const PROTECTED_PREFIXES = ["/dashboard", "/inbox", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/inbox", "/admin", "/communities"];
 const AUTH_PAGES = ["/login", "/signup"];
 
 export async function proxy(request: NextRequest) {
@@ -63,5 +63,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/inbox/:path*", "/admin/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/inbox/:path*", "/admin/:path*", "/communities/:path*", "/login", "/signup"],
 };
