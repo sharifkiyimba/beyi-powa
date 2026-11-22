@@ -7,6 +7,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { CONDITION_LABEL, daysUntil, formatDate, formatUGX, sellerStatus } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { VerifiedPill } from "@/components/VerifiedBadge";
 import { VerificationCard } from "@/components/VerificationCard";
@@ -14,7 +15,7 @@ import { NoticeBox, PageLoading, primaryButton, secondaryButton } from "@/compon
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [listingsLoaded, setListingsLoaded] = useState(false);
 
@@ -51,6 +52,12 @@ export default function DashboardPage() {
     await loadListings();
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  };
+
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-zinc-50">
@@ -81,9 +88,9 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-zinc-50">
       <Header />
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         <div className="mb-8">
-          <h1 className="flex flex-wrap items-center gap-3 text-3xl font-bold text-zinc-900">
+          <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-zinc-900 sm:text-3xl">
             Welcome, {profile.full_name || "friend"}!
             {status === "active" && <VerifiedPill label="Verified seller" />}
           </h1>
@@ -132,7 +139,7 @@ export default function DashboardPage() {
                 </Link>
               )}
               <Link href="/inbox" className={`block w-full text-center ${secondaryButton}`}>
-                Open inbox
+                Open chats
               </Link>
               {status === "active" && (
                 <Link href="/communities" className={`block w-full text-center ${secondaryButton}`}>
@@ -144,6 +151,14 @@ export default function DashboardPage() {
                   View my public profile
                 </Link>
               )}
+              {profile.is_admin && (
+                <Link href="/admin" className={`block w-full text-center ${secondaryButton} !text-red-600`}>
+                  Admin
+                </Link>
+              )}
+              <button onClick={handleSignOut} className={`block w-full text-center ${secondaryButton}`}>
+                Log out
+              </button>
             </div>
           </div>
 
@@ -194,6 +209,7 @@ export default function DashboardPage() {
           </section>
         )}
       </main>
+      <BottomNav active="me" />
     </div>
   );
 }

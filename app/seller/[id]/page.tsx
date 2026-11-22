@@ -8,7 +8,9 @@ import { LISTING_SELECT } from "@/lib/listings";
 import { formatDate, isActiveSeller, sellerName } from "@/lib/format";
 import type { ListingWithRelations, Profile, Review } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
 import { ListingCard } from "@/components/ListingCard";
 import { VerifiedPill } from "@/components/VerifiedBadge";
 import { ErrorBox, NoticeBox, PageLoading, inputClass, primaryButton, secondaryButton } from "@/components/ui";
@@ -113,10 +115,10 @@ function SellerProfileContent() {
   const isMe = user?.id === seller.id;
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-12">
+    <div className="min-h-screen bg-zinc-50">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 pt-8">
+      <main className="pb-12 mx-auto max-w-5xl px-4 pt-8">
         <div className="mb-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -125,8 +127,9 @@ function SellerProfileContent() {
                 {verified && <VerifiedPill />}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-zinc-600">
-                <span className="font-bold text-amber-500">
-                  ★ {average > 0 ? average.toFixed(1) : "No reviews yet"}
+                <span className="inline-flex items-center gap-1 font-bold text-amber-500">
+                  <Icon name="star" className="h-4 w-4" />
+                  {average > 0 ? average.toFixed(1) : "No reviews yet"}
                 </span>
                 <span>•</span>
                 <span>{listings.length} active {listings.length === 1 ? "listing" : "listings"}</span>
@@ -180,7 +183,7 @@ function SellerProfileContent() {
                     </div>
                     <div className="mb-2 flex text-sm text-amber-500" aria-label={`${r.rating} out of 5`}>
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <span key={s}>{s <= r.rating ? "★" : "☆"}</span>
+                        <Icon key={s} name="star" className={`h-4 w-4 ${s <= r.rating ? "text-amber-500" : "text-zinc-300"}`} />
                       ))}
                     </div>
                     {r.comment && <p className="text-sm text-zinc-600">{r.comment}</p>}
@@ -191,6 +194,7 @@ function SellerProfileContent() {
           </div>
         </div>
       </main>
+      <BottomNav active="shop" />
     </div>
   );
 }
@@ -243,9 +247,9 @@ function ReviewForm({
             type="button"
             aria-label={`${star} star${star > 1 ? "s" : ""}`}
             onClick={() => setRating(star)}
-            className={`text-2xl ${rating >= star ? "text-amber-500" : "text-zinc-300"}`}
+            className={`p-0.5 ${rating >= star ? "text-amber-500" : "text-zinc-300"}`}
           >
-            ★
+            <Icon name="star" className="h-8 w-8" />
           </button>
         ))}
       </div>

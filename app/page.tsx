@@ -7,7 +7,9 @@ import { LISTING_SELECT } from "@/lib/listings";
 import { BRANDS } from "@/lib/config";
 import { CONDITION_LABEL } from "@/lib/format";
 import type { Condition, ListingWithRelations } from "@/lib/types";
+import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
 import { ListingCard } from "@/components/ListingCard";
 import { ErrorBox, PageLoading } from "@/components/ui";
 
@@ -112,7 +114,9 @@ export default function Home() {
 
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center">
-                <span className="text-4xl">🔍</span>
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
+                  <Icon name="search" className="h-7 w-7" />
+                </span>
                 <h3 className="mt-4 text-lg font-bold text-zinc-900">
                   {listings.length === 0 ? "No phones listed yet" : "No phones found"}
                 </h3>
@@ -137,6 +141,7 @@ export default function Home() {
           </>
         )}
       </section>
+      <BottomNav active="shop" />
     </main>
   );
 }

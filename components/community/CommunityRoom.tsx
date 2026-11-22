@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { openConversation } from "@/lib/chat";
 import type { Community, CommunityMember, CommunityPostRow } from "@/lib/types";
+import { Avatar } from "../Avatar";
+import { Icon } from "../Icon";
 import { ErrorBox } from "../ui";
 import { CommunityChat } from "./CommunityChat";
 import { MediaGallery } from "./MediaGallery";
@@ -52,7 +54,7 @@ export function CommunityRoom({
   const title = view === "gallery" ? "Photos & videos" : view === "info" ? "Community info" : community.name;
   const subtitle =
     view === "chat"
-      ? `${members.length} ${members.length === 1 ? "member" : "members"} • tap ⓘ for info`
+      ? `${members.length} ${members.length === 1 ? "member" : "members"}`
       : community.name;
 
   return (
@@ -61,31 +63,38 @@ export function CommunityRoom({
         <button
           onClick={() => (view === "chat" ? router.push("/communities") : setView("chat"))}
           aria-label="Back"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-zinc-600 hover:bg-zinc-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100"
         >
-          &larr;
+          <Icon name="back" className="h-6 w-6" />
         </button>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold text-zinc-900">{title}</h1>
-          <p className="truncate text-xs text-zinc-500">{subtitle}</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => view === "chat" && setView("info")}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-0.5 text-left"
+        >
+          {view === "chat" && <Avatar name={community.name} seed={community.id} group size="sm" />}
+          <span className="min-w-0">
+            <span className="block truncate text-base font-bold text-zinc-900">{title}</span>
+            <span className="block truncate text-xs text-zinc-500">{subtitle}</span>
+          </span>
+        </button>
         {view === "chat" && (
           <>
             <button
               onClick={() => setView("gallery")}
               aria-label="Photos and videos"
               title="Photos and videos"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-zinc-100"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100"
             >
-              🖼
+              <Icon name="image" className="h-6 w-6" />
             </button>
             <button
               onClick={() => setView("info")}
               aria-label="Community info and members"
               title="Info and members"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-zinc-100"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100"
             >
-              ⓘ
+              <Icon name="info" className="h-6 w-6" />
             </button>
           </>
         )}

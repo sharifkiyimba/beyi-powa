@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import { uploadCommunityPost } from "@/lib/community";
 import { MAX_VIDEO_MB, MAX_VIDEO_SECONDS } from "@/lib/config";
-import { dayLabel, formatTime, formatUGX } from "@/lib/format";
+import { dayLabel, formatUGX } from "@/lib/format";
 import type { CommunityPostRow } from "@/lib/types";
+import { ChatBubble, CHAT_BACKGROUND, DayPill } from "../chat/ChatBubble";
+import { Icon } from "../Icon";
 import { PostBubble } from "./PostBubble";
 import type { FeedMessage, useCommunityFeed } from "./useCommunityFeed";
 
@@ -173,12 +175,12 @@ export function CommunityChat({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* The stream */}
-      <div className="flex-1 space-y-2 overflow-y-auto bg-zinc-100 px-3 py-4">
+      <div className={`flex-1 overflow-y-auto px-3 py-2 ${CHAT_BACKGROUND}`}>
         {feed.error && <p className="rounded-lg bg-red-50 p-2 text-center text-xs font-medium text-red-700">{feed.error}</p>}
 
         {loaded && items.length === 0 && (
           <p className="mx-auto mt-10 max-w-xs text-center text-sm text-zinc-400">
-            Nothing here yet. Say hello, or tap 📎 to share a photo or video of your stock.
+            Nothing here yet. Say hello, or use the attach button to share a photo or video of your stock.
           </p>
         )}
 
@@ -188,17 +190,22 @@ export function CommunityChat({
             item.kind === "message" ? item.message.created_at : item.kind === "post" ? item.post.created_at : "";
 
           return (
-            <div key={item.key} className="space-y-2">
-              {showDay && dayIso && (
-                <div className="flex justify-center py-1">
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-zinc-500 shadow-sm">{dayLabel(dayIso)}</span>
-                </div>
-              )}
+            <div key={item.key} className={item.kind === "message" ? "" : "mt-2"}>
+              {showDay && dayIso && <DayPill label={dayLabel(dayIso)} />}
 
               {item.kind === "message" && (
-                <MessageBubble
-                  message={item.message}
+                <ChatBubble
+                  body={item.message.body}
+                  at={item.message.created_at}
                   mine={item.message.sender_id === userId}
+                  first={
+                    showDay ||
+                    i === 0 ||
+                    items[i - 1].kind !== "message" ||
+                    (items[i - 1] as Extract<Item, { kind: "message" }>).message.sender_id !== item.message.sender_id
+                  }
+                  pending={item.message.pending}
+                  failed={item.message.failed}
                   senderName={nameOf(item.message.sender_id)}
                   onRetry={() => void sendText(item.message.body, item.message.client_id)}
                 />
@@ -225,7 +232,7 @@ export function CommunityChat({
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-zinc-200 bg-white p-2 sm:p-3">
+      <div className="border-t border-zinc-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-3">
         {attachment && attachmentUrl && (
           <div className="mb-2 flex gap-3 rounded-xl bg-zinc-50 p-2">
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
@@ -235,7 +242,11 @@ export function CommunityChat({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={attachmentUrl} alt="Chosen" className="h-full w-full object-cover" />
               )}
-              {isVideo && <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-xl text-white">▶</span>}
+              {isVideo && (
+                <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                  <Icon name="play" className="h-7 w-7" />
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <label htmlFor="attach-phone" className="block text-xs font-medium text-zinc-700">
@@ -256,16 +267,16 @@ export function CommunityChat({
               </select>
               <p className="mt-1 text-[11px] text-zinc-500">Type a caption below, then send.</p>
             </div>
-            <button type="button" onClick={clearAttachment} aria-label="Remove attachment" className="h-7 w-7 shrink-0 rounded-full bg-zinc-200 text-xs text-zinc-700">
-              ✕
+            <button type="button" onClick={clearAttachment} aria-label="Remove attachment" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-zinc-700">
+              <Icon name="close" className="h-4 w-4" />
             </button>
           </div>
         )}
         {attachError && <p className="mb-2 text-xs font-medium text-red-600">{attachError}</p>}
 
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-xl hover:bg-zinc-100" aria-label="Attach a photo or video" title={`Photos, or videos up to ${MAX_VIDEO_SECONDS} seconds and ${MAX_VIDEO_MB} MB`}>
-            📎
+          <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100" aria-label="Attach a photo or video" title={`Photos, or videos up to ${MAX_VIDEO_SECONDS} seconds and ${MAX_VIDEO_MB} MB`}>
+            <Icon name="attach" className="h-6 w-6" />
             <input
               type="file"
               accept="image/*,video/*"
@@ -294,48 +305,12 @@ export function CommunityChat({
             onChange={(e) => setText(e.target.value)}
             placeholder={attachment ? "Add a caption..." : "Message"}
             aria-label={attachment ? "Caption" : "Message"}
-            className="min-w-0 flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-blue-600"
+            className="min-w-0 flex-1 rounded-full border border-zinc-200 bg-white px-4 py-3 text-base text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-600"
           />
-          <button type="submit" aria-label="Send" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700">
-            ➤
+          <button type="submit" aria-label="Send" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700">
+            <Icon name="send" className="h-5 w-5" />
           </button>
         </form>
-      </div>
-    </div>
-  );
-}
-
-function MessageBubble({
-  message,
-  mine,
-  senderName,
-  onRetry,
-}: {
-  message: FeedMessage;
-  mine: boolean;
-  senderName: string;
-  onRetry: () => void;
-}) {
-  return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
-          mine ? "rounded-br-sm bg-blue-600 text-white" : "rounded-bl-sm border border-zinc-200 bg-white text-zinc-900"
-        } ${message.pending ? "opacity-70" : ""}`}
-      >
-        {!mine && <p className="mb-0.5 text-xs font-semibold text-blue-700">{senderName}</p>}
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
-        <span className={`mt-1 block text-right text-[10px] ${mine ? "text-blue-200" : "text-zinc-400"}`}>
-          {message.failed ? (
-            <button onClick={onRetry} className="font-semibold underline">
-              Not sent. Tap to retry
-            </button>
-          ) : message.pending ? (
-            "Sending..."
-          ) : (
-            formatTime(message.created_at)
-          )}
-        </span>
       </div>
     </div>
   );
@@ -344,7 +319,7 @@ function MessageBubble({
 function UploadBubble({ upload, onRetry, onDismiss }: { upload: Upload; onRetry: () => void; onDismiss: () => void }) {
   return (
     <div className="flex justify-end">
-      <div className="w-[82%] max-w-sm rounded-2xl rounded-br-sm bg-blue-600 p-1.5 text-white shadow-sm">
+      <div className="w-[82%] max-w-sm rounded-xl rounded-tr-none bg-[#d3e4fd] p-1.5 text-zinc-900 shadow-sm">
         <div className="relative overflow-hidden rounded-xl bg-black/20">
           {upload.isVideo ? (
             <video src={upload.previewUrl} muted playsInline className="max-h-64 w-full object-contain opacity-60" />

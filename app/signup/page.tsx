@@ -166,7 +166,7 @@ function SignupForm() {
                 </select>
               </div>
               <div>
-                <label htmlFor="phone" className="mb-1 block text-sm font-medium text-zinc-900">Phone / WhatsApp</label>
+                <label htmlFor="phone" className="mb-1 block text-sm font-medium text-zinc-900">Phone number</label>
                 <input id="phone" type="tel" required autoComplete="tel" value={form.phone} onChange={(e) => update({ phone: e.target.value })} className={inputClass} placeholder="0772 123 456" />
               </div>
             </div>

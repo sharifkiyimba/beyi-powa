@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { mediaUrl } from "@/lib/listings";
 import type { CommunityPostRow } from "@/lib/types";
+import { Icon } from "../Icon";
 import { Photo } from "../Photo";
 import { PostBubble } from "./PostBubble";
 
@@ -28,7 +29,7 @@ export function MediaGallery({
   if (posts.length === 0) {
     return (
       <div className="flex-1 overflow-y-auto bg-zinc-50 p-8 text-center text-sm text-zinc-400">
-        No photos or videos yet. Share one from the chat with the 📎 button.
+        No photos or videos yet. Share one from the chat with the attach button.
       </div>
     );
   }
@@ -48,7 +49,9 @@ export function MediaGallery({
               {post.media_kind === "video" ? (
                 <>
                   <video src={`${url}#t=0.1`} preload="metadata" muted playsInline className="pointer-events-none h-full w-full object-cover" />
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-2xl text-white">▶</span>
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-white">
+                    <Icon name="play" className="h-8 w-8" />
+                  </span>
                 </>
               ) : (
                 <Photo src={url} alt="" className="h-full w-full object-cover" />
@@ -72,8 +75,8 @@ export function MediaGallery({
         >
           <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end pb-1">
-              <button onClick={() => setOpenId(null)} aria-label="Close" className="h-8 w-8 rounded-full bg-zinc-100 text-sm text-zinc-700">
-                ✕
+              <button onClick={() => setOpenId(null)} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+                <Icon name="close" className="h-4 w-4" />
               </button>
             </div>
             <PostBubble

@@ -10,6 +10,7 @@ import { CONDITION_LABEL, isActiveSeller } from "@/lib/format";
 import type { Condition } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
 import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
 import { ErrorBox, NoticeBox, PageLoading, inputClass, primaryButton } from "@/components/ui";
 
 export default function AddListingPage() {
@@ -219,15 +220,15 @@ export default function AddListingPage() {
                       type="button"
                       aria-label={`Remove photo ${i + 1}`}
                       onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
-                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white"
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
                     >
-                      ✕
+                      <Icon name="close" className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
                 {photos.length < MAX_PHOTOS && (
                   <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 text-center hover:border-blue-400">
-                    <span className="text-2xl">📸</span>
+                    <Icon name="camera" className="h-7 w-7 text-zinc-400" />
                     <span className="mt-1 text-[11px] font-medium text-zinc-600">Add photo</span>
                     <input type="file" accept="image/*" multiple onChange={addPhotos} className="sr-only" />
                   </label>

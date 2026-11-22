@@ -28,7 +28,7 @@ type ReportRow = {
 };
 
 const STATUS_STYLE: Record<SellerStatus, { label: string; cls: string }> = {
-  active: { label: "✓ Verified", cls: "bg-blue-900/50 text-blue-400 border-blue-800" },
+  active: { label: "Verified", cls: "bg-blue-900/50 text-blue-400 border-blue-800" },
   unverified: { label: "Not verified", cls: "bg-zinc-700/50 text-zinc-300 border-zinc-600" },
   expired: { label: "Expired", cls: "bg-amber-900/50 text-amber-400 border-amber-800" },
   suspended: { label: "Suspended", cls: "bg-red-900/50 text-red-400 border-red-800" },

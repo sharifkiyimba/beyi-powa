@@ -1,12 +1,11 @@
 export function VerifiedTick({ size = "sm" }: { size?: "sm" | "md" }) {
-  const box = size === "md" ? "h-4 w-4 text-[10px]" : "h-3.5 w-3.5 text-[9px]";
+  const box = size === "md" ? "h-4 w-4" : "h-3.5 w-3.5";
   return (
-    <span
-      title="Verified seller"
-      className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full bg-blue-600 font-bold text-white`}
-    >
-      ✓
-    </span>
+    <svg viewBox="0 0 24 24" role="img" aria-label="Verified seller" className={`${box} shrink-0`}>
+      <title>Verified seller</title>
+      <circle cx="12" cy="12" r="12" fill="#2563eb" />
+      <path d="M7 12.5l3.5 3.5L17 9" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

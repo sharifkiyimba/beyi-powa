@@ -31,17 +31,21 @@ export function Header({ sticky = false }: { sticky?: boolean }) {
         <nav className="flex items-center gap-3 text-sm font-medium sm:gap-4">
           {loading ? null : user ? (
             <>
-              {profile?.role === "seller" && (
-                <Link href="/communities" className="text-zinc-600 hover:text-zinc-900">Communities</Link>
-              )}
-              <Link href="/inbox" className="text-zinc-600 hover:text-zinc-900">Inbox</Link>
-              <Link href="/dashboard" className="text-zinc-600 hover:text-zinc-900">Dashboard</Link>
-              {profile?.is_admin && (
-                <Link href="/admin" className="text-red-600 hover:text-red-700">Admin</Link>
-              )}
-              <button onClick={handleSignOut} className="text-zinc-500 hover:text-red-600">
-                Log out
-              </button>
+              {/* On phones these live in the bottom tab bar instead. */}
+              <div className="hidden items-center gap-4 md:flex">
+                <Link href="/" className="text-zinc-600 hover:text-zinc-900">Shop</Link>
+                <Link href="/inbox" className="text-zinc-600 hover:text-zinc-900">Chats</Link>
+                {profile?.role === "seller" && (
+                  <Link href="/communities" className="text-zinc-600 hover:text-zinc-900">Communities</Link>
+                )}
+                <Link href="/dashboard" className="text-zinc-600 hover:text-zinc-900">Me</Link>
+                {profile?.is_admin && (
+                  <Link href="/admin" className="text-red-600 hover:text-red-700">Admin</Link>
+                )}
+                <button onClick={handleSignOut} className="text-zinc-500 hover:text-red-600">
+                  Log out
+                </button>
+              </div>
             </>
           ) : (
             <>

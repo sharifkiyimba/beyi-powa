@@ -9,6 +9,7 @@ import { openConversation } from "@/lib/chat";
 import { CONDITION_LABEL, formatDate, formatUGX, isActiveSeller, sellerName } from "@/lib/format";
 import type { ListingWithRelations } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { Photo } from "@/components/Photo";
 import { VerifiedPill } from "@/components/VerifiedBadge";
@@ -113,10 +114,10 @@ function ListingContent() {
   const sold = listing.status === "sold";
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-12">
+    <div className="min-h-screen bg-zinc-50">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 pt-8">
+      <main className="pb-12 mx-auto max-w-5xl px-4 pt-8">
         <Link href="/" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
           &larr; Back to search
         </Link>
@@ -224,6 +225,7 @@ function ListingContent() {
           </div>
         </div>
       </main>
+      <BottomNav active="shop" />
     </div>
   );
 }

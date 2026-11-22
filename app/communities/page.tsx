@@ -7,6 +7,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { isActiveSeller } from "@/lib/format";
 import type { CommunityOverview } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { ErrorBox, NoticeBox, PageLoading, inputClass, primaryButton, secondaryButton } from "@/components/ui";
 
@@ -127,10 +128,10 @@ export default function CommunitiesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-12">
+    <div className="min-h-screen bg-zinc-50">
       <Header />
 
-      <main className="mx-auto max-w-3xl px-4 py-8">
+      <main className="mx-auto max-w-3xl px-4 py-8 pb-12">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">Seller communities</h1>
@@ -202,6 +203,7 @@ export default function CommunitiesPage() {
           </div>
         )}
       </main>
+      <BottomNav active="chats" />
     </div>
   );
 }
