@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase/client";
@@ -9,8 +9,9 @@ import { openConversation } from "@/lib/chat";
 import { CONDITION_LABEL, formatDate, formatUGX, isActiveSeller, sellerName } from "@/lib/format";
 import type { ListingWithRelations } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
-import { BottomNav } from "@/components/BottomNav";
+import { Avatar } from "@/components/Avatar";
 import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { VerifiedPill } from "@/components/VerifiedBadge";
 import { ErrorBox, NoticeBox, PageLoading, primaryButton } from "@/components/ui";
@@ -40,6 +41,7 @@ function ListingContent() {
   const [listing, setListing] = useState<ListingWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
@@ -79,6 +81,17 @@ function ListingContent() {
     }
   };
 
+  const goBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push("/");
+  };
+
+  const showPhoto = (i: number) => {
+    const el = trackRef.current;
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    setActivePhoto(i);
+  };
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-zinc-50">
@@ -113,119 +126,160 @@ function ListingContent() {
   const isMine = user?.id === listing.seller_id;
   const sold = listing.status === "sold";
 
+  const canMessage = !isMine && !sold;
+  const messageLabel = starting ? "Opening chat..." : user ? "Message seller" : "Log in to message seller";
+
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <Header />
+    <div className="flex min-h-screen flex-col bg-zinc-50">
+      {/* Laptops keep the normal top bar; phones get a slim bar with a back arrow. */}
+      <div className="hidden md:block">
+        <Header />
+      </div>
+      <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-zinc-200 bg-white px-2 py-2 md:hidden">
+        <button
+          onClick={goBack}
+          aria-label="Back"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100"
+        >
+          <Icon name="back" className="h-6 w-6" />
+        </button>
+        <p className="min-w-0 flex-1 truncate text-base font-semibold text-zinc-900">{listing.title}</p>
+      </div>
 
-      <main className="pb-12 mx-auto max-w-5xl px-4 pt-8">
-        <Link href="/" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
+      <main className="mx-auto w-full max-w-5xl flex-1 md:px-4 md:pb-12 md:pt-6">
+        <button onClick={goBack} className="mb-3 hidden text-sm font-medium text-zinc-600 hover:text-zinc-900 md:inline-block">
           &larr; Back to search
-        </Link>
+        </button>
 
-        <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-8">
+          {/* Photos: swipe on a phone, dots show where you are */}
           <div>
-            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-              <div className="aspect-square w-full bg-zinc-100">
-                <Photo
-                  src={photos[activePhoto] ? mediaUrl(photos[activePhoto].path) : null}
-                  alt={listing.title}
-                  className="h-full w-full object-contain"
-                />
+            <div className="relative overflow-hidden bg-white md:rounded-2xl md:border md:border-zinc-200">
+              <div
+                ref={trackRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  setActivePhoto(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
+                }}
+                className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {photos.length === 0 ? (
+                  <div className="aspect-square w-full shrink-0 bg-zinc-100">
+                    <Photo src={null} alt={listing.title} className="h-full w-full" />
+                  </div>
+                ) : (
+                  photos.map((p, i) => (
+                    <div key={p.path} className="aspect-square w-full shrink-0 snap-center bg-zinc-100">
+                      <Photo src={mediaUrl(p.path)} alt={`${listing.title}, photo ${i + 1}`} className="h-full w-full object-contain" />
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
-            {photos.length > 1 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto">
-                {photos.map((p, i) => (
-                  <button
-                    key={p.path}
-                    onClick={() => setActivePhoto(i)}
-                    aria-label={`Photo ${i + 1}`}
-                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${
-                      i === activePhoto ? "border-blue-600" : "border-transparent"
-                    }`}
-                  >
-                    <Photo src={mediaUrl(p.path)} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">
-                {CONDITION_LABEL[listing.condition]}
-              </span>
-              <span className="text-xs font-medium text-zinc-500">{listing.brand}</span>
+              {photos.length > 1 && (
+                <>
+                  <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                    {activePhoto + 1} / {photos.length}
+                  </span>
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                    {photos.map((p, i) => (
+                      <button
+                        key={p.path}
+                        onClick={() => showPhoto(i)}
+                        aria-label={`Show photo ${i + 1}`}
+                        className={`h-2 rounded-full transition-all ${i === activePhoto ? "w-5 bg-blue-600" : "w-2 bg-zinc-400/70"}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
               {sold && (
-                <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+                <span className="absolute left-3 top-3 rounded-full bg-zinc-900 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
                   Sold
                 </span>
               )}
             </div>
+          </div>
 
-            <h1 className="text-3xl font-bold text-zinc-900">{listing.title}</h1>
-            <p className="mt-2 text-2xl font-bold text-blue-600">{formatUGX(listing.retail_price)}</p>
-            <p className="mt-1 text-xs text-zinc-500">Fixed price. Pay at the shop or on delivery.</p>
+          <div className="flex flex-col gap-4 px-4 py-4 md:px-0 md:py-0">
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-3xl font-bold text-blue-600">{formatUGX(listing.retail_price)}</p>
+                <span className="mt-1 shrink-0 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">
+                  {CONDITION_LABEL[listing.condition]}
+                </span>
+              </div>
+              <h1 className="mt-1 text-xl font-semibold text-zinc-900">{listing.title}</h1>
+              <p className="mt-1 text-xs text-zinc-500">Fixed price. Pay at the shop or on delivery.</p>
+            </div>
 
             {wholesale !== null && (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3">
                 <p className="text-sm font-semibold text-green-800">Wholesale price: {formatUGX(wholesale)}</p>
-                <p className="mt-1 text-xs text-green-600">Only visible to verified sellers.</p>
+                <p className="mt-0.5 text-xs text-green-700">Only visible to verified sellers.</p>
               </div>
             )}
 
-            {listing.location && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-zinc-600">
-                <span className="font-medium text-zinc-900">Location:</span>
-                <span>{listing.location}</span>
-              </div>
-            )}
-            <div className="mt-1 text-xs text-zinc-400">Listed {formatDate(listing.created_at)}</div>
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 text-sm">
+              {[
+                ["Brand", listing.brand],
+                ["Condition", CONDITION_LABEL[listing.condition]],
+                ["Area", listing.location ?? "Not given"],
+                ["Listed", formatDate(listing.created_at)],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-white px-3 py-2.5">
+                  <dt className="text-xs text-zinc-500">{k}</dt>
+                  <dd className="mt-0.5 font-medium text-zinc-900">{v}</dd>
+                </div>
+              ))}
+            </dl>
 
-            <div className="mt-6 border-t border-zinc-200 pt-6">
-              <h2 className="text-lg font-semibold text-zinc-900">Description</h2>
-              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-600">
+            <Link
+              href={`/seller/${listing.seller_id}`}
+              className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm hover:bg-zinc-50"
+            >
+              <Avatar name={sellerName(listing.seller)} seed={listing.seller_id} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-zinc-500">Sold by</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-base font-bold text-zinc-900">{sellerName(listing.seller)}</span>
+                  {verified && <VerifiedPill />}
+                </div>
+                {listing.seller?.location && <p className="text-xs text-zinc-500">Shop: {listing.seller.location}</p>}
+              </div>
+              <span className="shrink-0 text-sm font-semibold text-blue-600">View shop</span>
+            </Link>
+
+            <div>
+              <h2 className="text-base font-semibold text-zinc-900">Description</h2>
+              <p className="mt-1 whitespace-pre-line text-sm leading-6 text-zinc-600">
                 {listing.description || "No description provided by the seller."}
               </p>
             </div>
 
-            <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-zinc-500">Sold by</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <Link href={`/seller/${listing.seller_id}`} className="text-base font-bold text-zinc-900 hover:text-blue-600 hover:underline">
-                      {sellerName(listing.seller)}
-                    </Link>
-                    {verified && <VerifiedPill />}
-                  </div>
-                  {listing.seller?.location && (
-                    <p className="mt-1 text-xs text-zinc-500">Shop: {listing.seller.location}</p>
-                  )}
-                </div>
-                <Link href={`/seller/${listing.seller_id}`} className="text-sm font-semibold text-blue-600 hover:underline">
-                  View profile
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <ErrorBox message={error} />
-              {isMine ? (
-                <NoticeBox>This is your listing.</NoticeBox>
-              ) : sold ? (
-                <NoticeBox tone="amber">This phone has been sold.</NoticeBox>
-              ) : (
-                <button onClick={handleMessageSeller} disabled={starting} className={`w-full py-3 text-base ${primaryButton}`}>
-                  {starting ? "Opening chat..." : user ? "Message seller" : "Log in to message seller"}
-                </button>
-              )}
-            </div>
+            <ErrorBox message={error} />
+            {isMine && <NoticeBox>This is your listing.</NoticeBox>}
+            {!isMine && sold && <NoticeBox tone="amber">This phone has been sold.</NoticeBox>}
+            {canMessage && (
+              <button onClick={handleMessageSeller} disabled={starting} className={`hidden w-full py-3 text-base md:block ${primaryButton}`}>
+                {messageLabel}
+              </button>
+            )}
           </div>
         </div>
       </main>
-      <BottomNav active="shop" />
+
+      {/* On a phone the main action stays at the bottom of the screen, in thumb reach. */}
+      {canMessage && (
+        <div className="sticky bottom-0 z-30 flex items-center gap-3 border-t border-zinc-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+          <div className="min-w-0">
+            <p className="text-lg font-bold leading-tight text-zinc-900">{formatUGX(listing.retail_price)}</p>
+            <p className="text-[11px] text-zinc-500">Fixed price</p>
+          </div>
+          <button onClick={handleMessageSeller} disabled={starting} className={`flex-1 py-3 text-base ${primaryButton}`}>
+            {messageLabel}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
