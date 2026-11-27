@@ -10,6 +10,7 @@ import type { Condition, ListingWithRelations } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { BottomSheet } from "@/components/BottomSheet";
+import { Choice } from "@/components/Choice";
 import { Header } from "@/components/Header";
 import { Icon } from "@/components/Icon";
 import { ListingCard } from "@/components/ListingCard";
@@ -22,22 +23,6 @@ const SORT_LABEL: Record<Sort, string> = {
   price_low: "Price: low to high",
   price_high: "Price: high to low",
 };
-
-/** A pill button used for single-choice options. */
-function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-medium ${
-        active ? "border-blue-600 bg-blue-600 text-white" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function SheetGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (

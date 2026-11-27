@@ -7,6 +7,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { CONDITION_LABEL, daysUntil, formatDate, formatUGX, sellerStatus } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
+import { BecomeSellerCard } from "@/components/BecomeSellerCard";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { VerifiedPill } from "@/components/VerifiedBadge";
@@ -116,6 +117,12 @@ export default function DashboardPage() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
+          {!isSeller && (
+            <div className="lg:col-span-2">
+              <BecomeSellerCard />
+            </div>
+          )}
+
           {(status === "unverified" || status === "expired") && (
             <div className="lg:col-span-2">
               <VerificationCard profile={profile} renewal={status === "expired"} />
@@ -128,10 +135,10 @@ export default function DashboardPage() {
               {isSeller ? (
                 status === "active" ? (
                   <Link href="/dashboard/add-listing" className={`block w-full text-center ${primaryButton}`}>
-                    + Add new phone listing
+                    Sell a phone
                   </Link>
                 ) : (
-                  <p className="text-sm text-zinc-500">Posting phones unlocks once you have the blue tick.</p>
+                  <p className="text-sm text-zinc-500">Posting phones unlocks once you have the blue tick. Follow the steps above to get verified.</p>
                 )
               ) : (
                 <Link href="/" className={`block w-full text-center ${primaryButton}`}>
