@@ -47,6 +47,8 @@ export interface ListingWithRelations extends Listing {
   listing_media: ListingMedia[];
   /** Only filled in for verified sellers. The database hides it from everyone else. */
   wholesale: { wholesale_price: number } | { wholesale_price: number }[] | null;
+  /** Present when the seller has put this phone's IMEI on record. The IMEI itself stays private. */
+  imei_flag: { listing_id: string } | { listing_id: string }[] | null;
 }
 
 export interface Conversation {

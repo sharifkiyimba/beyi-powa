@@ -67,6 +67,7 @@ const STROKE: Record<string, React.ReactNode> = {
       <path d="M4 6h16M7 12h10M10 18h4" />
     </>
   ),
+  flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
   device: (
     <>
       <rect x="7" y="2" width="10" height="20" rx="2" />

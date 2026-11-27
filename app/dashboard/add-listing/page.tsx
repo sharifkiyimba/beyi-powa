@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/image";
+import { IMEI_HELP, cleanImei, isValidImei } from "@/lib/imei";
 import { AREAS, BRANDS, MAX_PHOTOS } from "@/lib/config";
 import { CONDITION_LABEL, formatUGX, isActiveSeller } from "@/lib/format";
 import type { Condition } from "@/lib/types";
@@ -30,6 +31,7 @@ type Form = {
   wholesalePrice: string;
   location: string;
   description: string;
+  imei: string;
 };
 
 export default function AddListingPage() {
@@ -49,6 +51,7 @@ export default function AddListingPage() {
     wholesalePrice: "",
     location: "",
     description: "",
+    imei: "",
   });
 
   const update = (patch: Partial<Form>) => {
@@ -72,6 +75,9 @@ export default function AddListingPage() {
   const problemWith = (n: number): string => {
     if (n === 0 && photos.length === 0) return "Add at least one photo. Buyers trust listings with real photos.";
     if (n === 1 && form.title.trim().length < 3) return "Enter the phone's name, for example iPhone 13 Pro Max 256GB.";
+    if (n === 1 && form.imei.trim() !== "" && !isValidImei(form.imei)) {
+      return "That IMEI does not look right. It has 15 digits. Dial *#06# on the phone and type it again.";
+    }
     if (n === 2) {
       const retail = Number(form.price);
       const wholesale = Number(form.wholesalePrice);
@@ -140,6 +146,13 @@ export default function AddListingPage() {
         .insert({ listing_id: listingId, wholesale_price: wholesale });
       if (wholesaleError) throw wholesaleError;
 
+      if (form.imei.trim()) {
+        const { error: imeiError } = await supabase
+          .from("listing_private")
+          .insert({ listing_id: listingId, imei: cleanImei(form.imei) });
+        if (imeiError) throw imeiError;
+      }
+
       const mediaRows: { listing_id: string; path: string; kind: "image"; position: number }[] = [];
       for (let i = 0; i < photos.length; i++) {
         setProgress(`Uploading photo ${i + 1} of ${photos.length}...`);
@@ -165,7 +178,9 @@ export default function AddListingPage() {
       setError(
         message?.toLowerCase().includes("row-level security")
           ? "Your seller account is not active. Please check your verification status on the Me tab."
-          : `Could not publish the listing. ${message ?? ""}`.trim()
+          : message?.toLowerCase().includes("already listed")
+            ? "This IMEI is already on another available phone on BEYI POWA. Check the number, or contact the team if it is your phone."
+            : `Could not publish the listing. ${message ?? ""}`.trim()
       );
       setBusy(false);
       setProgress("");
@@ -280,6 +295,14 @@ export default function AddListingPage() {
             </div>
 
             <div>
+              <label htmlFor="imei" className="mb-1 block text-sm font-medium text-zinc-900">IMEI (optional)</label>
+              <input id="imei" type="text" inputMode="numeric" autoComplete="off" maxLength={20} value={form.imei} onChange={(e) => update({ imei: e.target.value })} className={`${inputClass} text-base`} placeholder="15 digits" />
+              <p className="mt-1 text-xs text-zinc-500">
+                {IMEI_HELP} Private: buyers never see the number, only an &quot;IMEI on record&quot; tag that builds trust.
+              </p>
+            </div>
+
+            <div>
               <span className="mb-2 block text-sm font-medium text-zinc-900">Brand</span>
               <div className="flex flex-wrap gap-2">
                 {BRANDS.map((b) => (
@@ -375,6 +398,7 @@ export default function AddListingPage() {
                   {form.brand} • {CONDITION_LABEL[form.condition]} • {area}
                 </p>
                 <p className="pt-1 text-sm font-medium text-green-700">Wholesale: {formatUGX(Number(form.wholesalePrice))}</p>
+                {form.imei.trim() && <p className="text-sm font-medium text-emerald-700">IMEI on record (private)</p>}
                 {form.description.trim() && <p className="whitespace-pre-line pt-1 text-sm text-zinc-600">{form.description.trim()}</p>}
               </div>
             </div>

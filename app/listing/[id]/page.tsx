@@ -4,15 +4,18 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase/client";
-import { LISTING_SELECT, mediaUrl, sortedMedia, wholesalePriceOf } from "@/lib/listings";
+import { LISTING_SELECT, hasImei, mediaUrl, sortedMedia, wholesalePriceOf } from "@/lib/listings";
+import { viewerKey } from "@/lib/viewer";
 import { openConversation } from "@/lib/chat";
 import { CONDITION_LABEL, formatDate, formatUGX, isActiveSeller, sellerName } from "@/lib/format";
 import type { ListingWithRelations } from "@/lib/types";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
+import { BuyerChecklist } from "@/components/BuyerChecklist";
 import { Header } from "@/components/Header";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
+import { ReportListingSheet } from "@/components/ReportListingSheet";
 import { VerifiedPill } from "@/components/VerifiedBadge";
 import { ErrorBox, NoticeBox, PageLoading, primaryButton } from "@/components/ui";
 
@@ -45,6 +48,8 @@ function ListingContent() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const viewCounted = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +68,20 @@ function ListingContent() {
       cancelled = true;
     };
   }, [id]);
+
+  // Count this visit once (the seller sees the number on their Me tab).
+  const foundId = listing?.id;
+  useEffect(() => {
+    if (!foundId || authLoading || viewCounted.current) return;
+    viewCounted.current = true;
+    // The request is only sent once something waits on it, hence the .then().
+    getSupabase()
+      .rpc("record_view", { p_listing: foundId, p_viewer: viewerKey(user?.id) })
+      .then(
+        () => undefined,
+        () => undefined
+      );
+  }, [foundId, authLoading, user?.id]);
 
   const handleMessageSeller = async () => {
     if (!listing) return;
@@ -210,6 +229,12 @@ function ListingContent() {
               </div>
               <h1 className="mt-1 text-xl font-semibold text-zinc-900">{listing.title}</h1>
               <p className="mt-1 text-xs text-zinc-500">Fixed price. Pay at the shop or on delivery.</p>
+              {hasImei(listing) && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <Icon name="check" className="h-3.5 w-3.5" />
+                  IMEI on record with BEYI POWA
+                </p>
+              )}
             </div>
 
             {wholesale !== null && (
@@ -256,6 +281,8 @@ function ListingContent() {
               </p>
             </div>
 
+            {!isMine && !sold && <BuyerChecklist />}
+
             <ErrorBox message={error} />
             {isMine && <NoticeBox>This is your listing.</NoticeBox>}
             {!isMine && sold && <NoticeBox tone="amber">This phone has been sold.</NoticeBox>}
@@ -264,9 +291,28 @@ function ListingContent() {
                 {messageLabel}
               </button>
             )}
+
+            {!isMine && (
+              <button
+                onClick={() => (user ? setReportOpen(true) : router.push(`/login?next=${encodeURIComponent(`/listing/${listing.id}`)}`))}
+                className="flex items-center justify-center gap-1.5 self-center py-2 text-sm font-medium text-zinc-500 hover:text-red-600"
+              >
+                <Icon name="flag" className="h-4 w-4" />
+                Report this phone
+              </button>
+            )}
           </div>
         </div>
       </main>
+
+      {user && (
+        <ReportListingSheet
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          listing={{ id: listing.id, seller_id: listing.seller_id, title: listing.title }}
+          userId={user.id}
+        />
+      )}
 
       {/* On a phone the main action stays at the bottom of the screen, in thumb reach. */}
       {canMessage && (

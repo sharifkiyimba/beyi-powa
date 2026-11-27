@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ListingWithRelations } from "@/lib/types";
 import { CONDITION_LABEL, formatUGX, isActiveSeller, sellerName } from "@/lib/format";
-import { firstPhotoUrl, wholesalePriceOf } from "@/lib/listings";
+import { firstPhotoUrl, hasImei, wholesalePriceOf } from "@/lib/listings";
 import { Photo } from "./Photo";
 import { VerifiedTick } from "./VerifiedBadge";
 
@@ -38,6 +38,7 @@ export function ListingCard({ listing }: { listing: ListingWithRelations }) {
           </span>
           {listing.location && <span className="truncate text-[11px] text-zinc-500">{listing.location}</span>}
         </div>
+        {hasImei(listing) && <p className="mt-1.5 text-[11px] font-semibold text-emerald-700">IMEI on record</p>}
 
         <div className="mt-auto flex items-center gap-1 pt-2 text-xs text-zinc-500">
           <span className="truncate">{sellerName(listing.seller)}</span>

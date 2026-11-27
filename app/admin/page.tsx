@@ -23,8 +23,10 @@ type ReportRow = {
   reason: string;
   details: string | null;
   created_at: string;
+  listing_id: string | null;
   reporter: { full_name: string } | null;
   seller: { full_name: string; shop_name: string | null } | null;
+  listing: { id: string; title: string; status: string } | null;
 };
 
 const STATUS_STYLE: Record<SellerStatus, { label: string; cls: string }> = {
@@ -50,6 +52,7 @@ export default function AdminPage() {
   const [phones, setPhones] = useState<Record<string, string>>({});
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
+  const [imeis, setImeis] = useState<Record<string, string>>({});
   const [duration, setDuration] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -64,11 +67,20 @@ export default function AdminPage() {
         .select("id, seller_id, id_document_path, note, created_at, seller:profiles!seller_id (full_name, shop_name, location)")
         .eq("status", "pending")
         .order("created_at", { ascending: true }),
-      supabase
-        .from("reports")
-        .select("id, seller_id, reason, details, created_at, reporter:profiles!reporter_id (full_name), seller:profiles!seller_id (full_name, shop_name)")
-        .eq("status", "open")
-        .order("created_at", { ascending: true }),
+      (async () => {
+        const full = await supabase
+          .from("reports")
+          .select("id, seller_id, listing_id, reason, details, created_at, reporter:profiles!reporter_id (full_name), seller:profiles!seller_id (full_name, shop_name), listing:listings (id, title, status)")
+          .eq("status", "open")
+          .order("created_at", { ascending: true });
+        if (!full.error) return full;
+        // Before migration 004 there is no listing_id: fall back to seller reports only.
+        return supabase
+          .from("reports")
+          .select("id, seller_id, reason, details, created_at, reporter:profiles!reporter_id (full_name), seller:profiles!seller_id (full_name, shop_name)")
+          .eq("status", "open")
+          .order("created_at", { ascending: true });
+      })(),
     ]);
 
     setSellers((sellersRes.data ?? []) as Profile[]);
@@ -112,6 +124,20 @@ export default function AdminPage() {
 
   const resolveReport = (reportId: string, status: "reviewed" | "dismissed") =>
     run(() => getSupabase().from("reports").update({ status }).eq("id", reportId));
+
+  const removeListing = (listingId: string, reportId: string) => {
+    if (!window.confirm("Remove this phone for good? Its photos and IMEI record are deleted.")) return;
+    return run(async () => {
+      const res = await getSupabase().rpc("admin_remove_listing", { p_listing: listingId });
+      if (res.error) return res;
+      return getSupabase().from("reports").update({ status: "reviewed" }).eq("id", reportId);
+    });
+  };
+
+  const showImei = async (listingId: string) => {
+    const { data, error: imeiError } = await getSupabase().rpc("admin_listing_imei", { p_listing: listingId });
+    setImeis((m) => ({ ...m, [listingId]: imeiError ? "Could not read" : ((data as string | null) ?? "None on record") }));
+  };
 
   const viewId = async (path: string) => {
     // Open the tab first so phone browsers do not block the pop-up.
@@ -211,10 +237,24 @@ export default function AdminPage() {
                       <Link href={`/seller/${r.seller_id}`} className="hover:underline" target="_blank">{sellerName(r.seller)}</Link>
                       <span className="font-normal text-zinc-400"> reported by {r.reporter?.full_name || "a user"} on {formatDate(r.created_at)}</span>
                     </p>
+                    {r.listing && (
+                      <p className="mt-1 text-sm">
+                        Phone:{" "}
+                        <Link href={`/listing/${r.listing.id}`} target="_blank" className="text-blue-400 hover:underline">{r.listing.title}</Link>
+                        {r.listing.status === "sold" && <span className="text-zinc-400"> (sold)</span>}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm text-amber-300">{r.reason}</p>
                     {r.details && <p className="mt-1 text-xs text-zinc-300">{r.details}</p>}
+                    {r.listing && imeis[r.listing.id] && <p className="mt-1 text-xs text-zinc-300">IMEI: {imeis[r.listing.id]}</p>}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {r.listing && (
+                      <>
+                        <button onClick={() => showImei(r.listing!.id)} className={`${btn} bg-zinc-600 hover:bg-zinc-500`}>Show IMEI</button>
+                        <button onClick={() => removeListing(r.listing!.id, r.id)} className={`${btn} bg-red-700 hover:bg-red-600`}>Remove phone</button>
+                      </>
+                    )}
                     <button onClick={() => setSuspended(r.seller_id, true).then(() => resolveReport(r.id, "reviewed"))} className={`${btn} bg-red-700 hover:bg-red-600`}>Suspend seller</button>
                     <button onClick={() => resolveReport(r.id, "reviewed")} className={`${btn} bg-zinc-600 hover:bg-zinc-500`}>Mark reviewed</button>
                     <button onClick={() => resolveReport(r.id, "dismissed")} className={`${btn} bg-zinc-700 hover:bg-zinc-600`}>Dismiss</button>

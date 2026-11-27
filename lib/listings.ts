@@ -9,7 +9,8 @@ export const LISTING_SELECT = `
   *,
   seller:profiles!seller_id (id, full_name, shop_name, location, verified, paid_until, suspended),
   listing_media (path, kind, position),
-  wholesale:listing_wholesale (wholesale_price)
+  wholesale:listing_wholesale (wholesale_price),
+  imei_flag:listing_imei_flags (listing_id)
 `;
 
 export function mediaUrl(path: string): string {
@@ -23,6 +24,12 @@ export function sortedMedia(l: ListingWithRelations) {
 export function firstPhotoUrl(l: ListingWithRelations): string | null {
   const first = sortedMedia(l).find((m) => m.kind === "image");
   return first ? mediaUrl(first.path) : null;
+}
+
+/** True when the seller has put this phone's IMEI on record with BEYI POWA. */
+export function hasImei(l: { imei_flag?: ListingWithRelations["imei_flag"] }): boolean {
+  const f = l.imei_flag;
+  return Array.isArray(f) ? f.length > 0 : Boolean(f);
 }
 
 export function wholesalePriceOf(l: { wholesale: ListingWithRelations["wholesale"] }): number | null {
